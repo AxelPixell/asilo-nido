@@ -1,6 +1,33 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+
+//SDK Firebase
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { 
+    getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy 
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // Sostituisci con i dati del tuo progetto presi dalla console Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_VRCI9OBTIwy2ZBqYUFZeic7gH0YmxP4",
+
+  authDomain: "asilo-nido-app.firebaseapp.com",
+
+  projectId: "asilo-nido-app",
+
+  storageBucket: "asilo-nido-app.firebasestorage.app",
+
+  messagingSenderId: "779280089625",
+
+  appId: "1:779280089625:web:dd02f49323efe5a73d6088"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+</script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Piccoli Passi - Gestione Asilo Nido</title>
