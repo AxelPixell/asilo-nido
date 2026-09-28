@@ -1,36 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-
-//SDK Firebase
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { 
-    getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy 
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  // Sostituisci con i dati del tuo progetto presi dalla console Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyA_VRCI9OBTIwy2ZBqYUFZeic7gH0YmxP4",
-
-  authDomain: "asilo-nido-app.firebaseapp.com",
-
-  projectId: "asilo-nido-app",
-
-  storageBucket: "asilo-nido-app.firebasestorage.app",
-
-  messagingSenderId: "779280089625",
-
-  appId: "1:779280089625:web:dd02f49323efe5a73d6088"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-</script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Piccoli Passi - Gestione Asilo Nido</title>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -480,28 +454,75 @@
         </div>
     </div>
 
-    <script>
-        // GLOBAL STATE & DATA MANAGEMENT
-        const STORAGE_KEY_CHILDREN = 'nido_children_v3';
-        const STORAGE_KEY_LOGS = 'nido_logs_v3';
+    <!-- FIREBASE MODULE & APPLICATION LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, setDoc, doc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, getDocs 
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_VRCI9OBTIwy2ZBqYUFZeic7gH0YmxP4",
+            authDomain: "asilo-nido-app.firebaseapp.com",
+            projectId: "asilo-nido-app",
+            storageBucket: "asilo-nido-app.firebasestorage.app",
+            messagingSenderId: "779280089625",
+            appId: "1:779280089625:web:dd02f49323efe5a73d6088"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         const STORAGE_KEY_EDUCATOR = 'nido_educator_v3';
 
         let children = [];
         let logs = [];
         let currentChildId = null;
         let activeFilter = 'all';
+        let currentView = 'dashboard';
         let defaultEducator = 'Maria G.';
 
-        // Chart instances
+        // Instanze grafici Chart.js
         let mealChartInstance = null;
         let sleepChartInstance = null;
 
-        window.onload = function() {
-            initData();
+        // Inizializzazione Listener Firebase in tempo reale
+        window.addEventListener('DOMContentLoaded', () => {
             setupCurrentEducator();
             setupDefaultDates();
-            navigateTo('dashboard');
-        };
+            
+            // Sincronizzazione Realtime Collezione "children"
+            onSnapshot(collection(db, "children"), (snapshot) => {
+                children = snapshot.docs.map(docSnap => ({
+                    id: docSnap.id,
+                    ...docSnap.data()
+                }));
+                refreshCurrentView();
+            }, (error) => {
+                console.error("Errore caricamento bambini da Firestore:", error);
+            });
+
+            // Sincronizzazione Realtime Collezione "logs"
+            onSnapshot(collection(db, "logs"), (snapshot) => {
+                logs = snapshot.docs.map(docSnap => ({
+                    id: docSnap.id,
+                    ...docSnap.data()
+                }));
+                refreshCurrentView();
+            }, (error) => {
+                console.error("Errore caricamento registrazioni da Firestore:", error);
+            });
+        });
+
+        function refreshCurrentView() {
+            if (currentView === 'dashboard') {
+                renderChildrenGrid();
+            } else if (currentView === 'detail' && currentChildId) {
+                renderChildDetailView();
+            } else if (currentView === 'report') {
+                renderDailyReport();
+            }
+        }
 
         function setupCurrentEducator() {
             const savedEducator = localStorage.getItem(STORAGE_KEY_EDUCATOR);
@@ -512,12 +533,12 @@
             document.getElementById('logEducator').value = defaultEducator;
         }
 
-        function updateDefaultEducator(name) {
+        window.updateDefaultEducator = function(name) {
             if (!name.trim()) return;
             defaultEducator = name.trim();
             localStorage.setItem(STORAGE_KEY_EDUCATOR, defaultEducator);
             document.getElementById('logEducator').value = defaultEducator;
-        }
+        };
 
         function setupDefaultDates() {
             const todayStr = getTodayYYYYMMDD();
@@ -541,128 +562,8 @@
             return `${year}-${month}-${day}`;
         }
 
-        function initData() {
-            const storedChildren = localStorage.getItem(STORAGE_KEY_CHILDREN);
-            const storedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
-
-            if (storedChildren && storedLogs) {
-                children = JSON.parse(storedChildren);
-                logs = JSON.parse(storedLogs);
-            } else {
-                seedDemoData();
-            }
-        }
-
-        function seedDemoData() {
-            const today = new Date();
-            
-            children = [
-                {
-                    id: 'c1',
-                    firstName: 'Leonardo',
-                    lastName: 'Ferrari',
-                    birthDate: '2022-05-14',
-                    gender: 'M',
-                    notes: 'Nessuna intolleranza. Ciuccio per dormire.'
-                },
-                {
-                    id: 'c2',
-                    firstName: 'Sofia',
-                    lastName: 'Bianchi',
-                    birthDate: '2023-01-20',
-                    gender: 'F',
-                    notes: 'Leggera sensibilità al lattosio.'
-                },
-                {
-                    id: 'c3',
-                    firstName: 'Tommaso',
-                    lastName: 'Ricci',
-                    birthDate: '2022-11-03',
-                    gender: 'M',
-                    notes: 'Molto vivace. Ama ascoltare la musica prima del sonno.'
-                }
-            ];
-
-            logs = [];
-            const currentDayOfWeek = today.getDay();
-            const distanceToMon = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
-            
-            const monday = new Date(today);
-            monday.setDate(today.getDate() + distanceToMon);
-
-            const sampleFoods = [
-                'Pasta al pomodoro e pera',
-                'Risotto alla zucca e banana',
-                'Passato di verdure con crostini',
-                'Polpettine di tacchino e purè',
-                'Minestrina con formaggino e mela'
-            ];
-
-            for (let i = 0; i < 5; i++) {
-                const dayDate = new Date(monday);
-                dayDate.setDate(monday.getDate() + i);
-                const dateStr = dayDate.toISOString().split('T')[0];
-
-                // Leonardo logs
-                logs.push({
-                    id: 'l_' + Math.random().toString(36).substr(2, 9),
-                    childId: 'c1',
-                    type: 'pasto',
-                    educator: 'Maria G.',
-                    date: dateStr,
-                    mealType: 'Pranzo',
-                    mealFood: sampleFoods[i % sampleFoods.length],
-                    mealTime: '12:15',
-                    mealAmount: i % 2 === 0 ? 'Molto' : 'Normale'
-                });
-                logs.push({
-                    id: 'l_' + Math.random().toString(36).substr(2, 9),
-                    childId: 'c1',
-                    type: 'sonno',
-                    educator: 'Maria G.',
-                    date: dateStr,
-                    sleepStart: '13:00',
-                    sleepEnd: i === 2 ? '14:30' : '15:15',
-                    durationMinutes: i === 2 ? 90 : 135,
-                    interrupted: i === 2 ? 'Sì' : 'No',
-                    notes: i === 2 ? 'Svegliato da rumore esterno' : ''
-                });
-
-                // Sofia logs
-                logs.push({
-                    id: 'l_' + Math.random().toString(36).substr(2, 9),
-                    childId: 'c2',
-                    type: 'pasto',
-                    educator: 'Laura B.',
-                    date: dateStr,
-                    mealType: 'Pranzo',
-                    mealFood: 'Crema di riso con zucchine e pappa alle mele',
-                    mealTime: '12:00',
-                    mealAmount: i === 1 ? 'Poco' : 'Normale'
-                });
-                logs.push({
-                    id: 'l_' + Math.random().toString(36).substr(2, 9),
-                    childId: 'c2',
-                    type: 'sonno',
-                    educator: 'Laura B.',
-                    date: dateStr,
-                    sleepStart: '13:15',
-                    sleepEnd: '15:00',
-                    durationMinutes: 105,
-                    interrupted: 'No',
-                    notes: ''
-                });
-            }
-
-            saveToLocalStorage();
-        }
-
-        function saveToLocalStorage() {
-            localStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(children));
-            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
-        }
-
-        function navigateTo(view, childId = null) {
+        window.navigateTo = function(view, childId = null) {
+            currentView = view;
             document.getElementById('sec-dashboard').classList.add('hidden');
             document.getElementById('sec-child-detail').classList.add('hidden');
             document.getElementById('sec-report').classList.add('hidden');
@@ -685,7 +586,7 @@
             }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        };
 
         function renderChildrenGrid() {
             const grid = document.getElementById('childrenGrid');
@@ -793,7 +694,7 @@
             renderLogsList(child.id);
         }
 
-        function exportChildPDF() {
+        window.exportChildPDF = function() {
             const child = children.find(c => c.id === currentChildId);
             if (!child) return;
 
@@ -803,7 +704,6 @@
             const filterTabs = document.getElementById('filterTabsContainer');
             const chartsGrid = document.getElementById('chartsGrid');
 
-            // 1. Applica classi per il layout PDF pulito e senza limiti di altezza
             printableArea.classList.add('pdf-export-mode');
             historyLogsContainer.classList.remove('lg:col-span-7');
             historyLogsContainer.classList.add('w-full');
@@ -813,7 +713,6 @@
             if (registrationForm) registrationForm.style.display = 'none';
             if (filterTabs) filterTabs.style.display = 'none';
 
-            // 2. Ridimensionamento Chart.js per evitare sovrapposizioni
             if (mealChartInstance) mealChartInstance.resize();
             if (sleepChartInstance) sleepChartInstance.resize();
 
@@ -827,7 +726,6 @@
                 pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
-            // 3. Genera PDF e poi ripristina la visualizzazione web
             html2pdf().set(opt).from(printableArea).save().then(() => {
                 restoreNormalLayout();
             }).catch(err => {
@@ -848,7 +746,7 @@
                 if (mealChartInstance) mealChartInstance.resize();
                 if (sleepChartInstance) sleepChartInstance.resize();
             }
-        }
+        };
 
         function renderWeeklyCharts(childId) {
             const today = new Date();
@@ -889,7 +787,6 @@
                 return (totalMinutes / 60).toFixed(1);
             });
 
-            // Meal Chart
             const ctxMeal = document.getElementById('mealWeeklyChart').getContext('2d');
             if (mealChartInstance) mealChartInstance.destroy();
 
@@ -929,7 +826,6 @@
                 }
             });
 
-            // Sleep Chart
             const ctxSleep = document.getElementById('sleepWeeklyChart').getContext('2d');
             if (sleepChartInstance) sleepChartInstance.destroy();
 
@@ -964,7 +860,7 @@
             });
         }
 
-        function switchLogForm(type) {
+        window.switchLogForm = function(type) {
             document.getElementById('logType').value = type;
             const btnPasto = document.getElementById('btnTypeMeal');
             const btnSleep = document.getElementById('btnTypeSleep');
@@ -982,9 +878,9 @@
                 document.getElementById('fieldsPasto').classList.add('hidden');
                 document.getElementById('mealFood').required = false;
             }
-        }
+        };
 
-        function calculateSleepDuration() {
+        window.calculateSleepDuration = function() {
             const startStr = document.getElementById('sleepStart').value;
             const endStr = document.getElementById('sleepEnd').value;
 
@@ -1006,18 +902,19 @@
 
             document.getElementById('sleepDurationPreview').innerText = `${hours} h ${mins} min`;
             return diffMins;
-        }
+        };
 
-        function toggleSleepNotes(val) {
+        window.toggleSleepNotes = function(val) {
             const container = document.getElementById('sleepNotesContainer');
             if (val === 'Sì') {
                 container.classList.remove('hidden');
             } else {
                 container.classList.add('hidden');
             }
-        }
+        };
 
-        function handleSaveLog(e) {
+        // FIREBASE: Salva o Aggiorna una registrazione (Pasto/Sonno)
+        window.handleSaveLog = async function(e) {
             e.preventDefault();
 
             const logId = document.getElementById('logId').value;
@@ -1030,8 +927,7 @@
                 return;
             }
 
-            let newLog = {
-                id: logId || ('l_' + Math.random().toString(36).substr(2, 9)),
+            let logData = {
                 childId: currentChildId,
                 type: logType,
                 educator: educator,
@@ -1044,31 +940,32 @@
                     alert('Specifica il cibo mangiato dal bambino.');
                     return;
                 }
-                newLog.mealType = document.getElementById('mealType').value;
-                newLog.mealFood = mealFood;
-                newLog.mealTime = document.getElementById('mealTime').value;
-                newLog.mealAmount = document.getElementById('mealAmount').value;
+                logData.mealType = document.getElementById('mealType').value;
+                logData.mealFood = mealFood;
+                logData.mealTime = document.getElementById('mealTime').value;
+                logData.mealAmount = document.getElementById('mealAmount').value;
             } else {
-                newLog.sleepStart = document.getElementById('sleepStart').value;
-                newLog.sleepEnd = document.getElementById('sleepEnd').value;
-                newLog.durationMinutes = calculateSleepDuration();
-                newLog.interrupted = document.getElementById('sleepInterrupted').value;
-                newLog.notes = document.getElementById('sleepNotes').value;
+                logData.sleepStart = document.getElementById('sleepStart').value;
+                logData.sleepEnd = document.getElementById('sleepEnd').value;
+                logData.durationMinutes = calculateSleepDuration();
+                logData.interrupted = document.getElementById('sleepInterrupted').value;
+                logData.notes = document.getElementById('sleepNotes').value;
             }
 
-            if (logId) {
-                const idx = logs.findIndex(l => l.id === logId);
-                if (idx !== -1) logs[idx] = newLog;
-            } else {
-                logs.unshift(newLog);
+            try {
+                if (logId) {
+                    await setDoc(doc(db, "logs", logId), logData, { merge: true });
+                } else {
+                    await addDoc(collection(db, "logs"), logData);
+                }
+                resetLogForm();
+            } catch (error) {
+                console.error("Errore durante il salvataggio della registrazione:", error);
+                alert("Si è verificato un errore durante il salvataggio su Firebase.");
             }
+        };
 
-            saveToLocalStorage();
-            resetLogForm();
-            renderChildDetailView();
-        }
-
-        function editLog(logId) {
+        window.editLog = function(logId) {
             const log = logs.find(l => l.id === logId);
             if (!log) return;
 
@@ -1094,17 +991,21 @@
 
             document.getElementById('logBtnText').innerText = "Aggiorna Registrazione";
             document.getElementById('cancelEditLogBtn').classList.remove('hidden');
-        }
+        };
 
-        function deleteLog(logId) {
+        // FIREBASE: Elimina una registrazione
+        window.deleteLog = async function(logId) {
             if (confirm("Vuoi davvero eliminare questa registrazione?")) {
-                logs = logs.filter(l => l.id !== logId);
-                saveToLocalStorage();
-                renderChildDetailView();
+                try {
+                    await deleteDoc(doc(db, "logs", logId));
+                } catch (error) {
+                    console.error("Errore durante l'eliminazione:", error);
+                    alert("Si è verificato un errore nell'eliminazione della registrazione.");
+                }
             }
-        }
+        };
 
-        function resetLogForm() {
+        window.resetLogForm = function() {
             document.getElementById('logId').value = '';
             document.getElementById('logDate').value = getTodayYYYYMMDD();
             document.getElementById('logEducator').value = defaultEducator;
@@ -1116,9 +1017,9 @@
             document.getElementById('sleepNotes').value = '';
             document.getElementById('sleepInterrupted').value = 'No';
             toggleSleepNotes('No');
-        }
+        };
 
-        function filterLogs(filter) {
+        window.filterLogs = function(filter) {
             activeFilter = filter;
             ['all', 'pasto', 'sonno'].forEach(f => {
                 const btn = document.getElementById(`filter-${f}`);
@@ -1129,7 +1030,7 @@
                 }
             });
             renderLogsList(currentChildId);
-        }
+        };
 
         function renderLogsList(childId) {
             const list = document.getElementById('logsHistoryList');
@@ -1226,7 +1127,7 @@
             });
         }
 
-        function renderDailyReport() {
+        window.renderDailyReport = function() {
             const selectedDate = document.getElementById('reportDatePicker').value;
             const container = document.getElementById('reportContainer');
             container.innerHTML = '';
@@ -1310,9 +1211,9 @@
 
                 container.appendChild(card);
             });
-        }
+        };
 
-        function openChildModal(childId = null) {
+        window.openChildModal = function(childId = null) {
             const modal = document.getElementById('childModal');
             const title = document.getElementById('childModalTitle');
             
@@ -1333,13 +1234,14 @@
             }
 
             modal.classList.remove('hidden');
-        }
+        };
 
-        function closeChildModal() {
+        window.closeChildModal = function() {
             document.getElementById('childModal').classList.add('hidden');
-        }
+        };
 
-        function handleSaveChild(e) {
+        // FIREBASE: Salva o Aggiorna un Bambino
+        window.handleSaveChild = async function(e) {
             e.preventDefault();
 
             const id = document.getElementById('childFormId').value;
@@ -1354,41 +1256,45 @@
                 return;
             }
 
-            if (id) {
-                const idx = children.findIndex(c => c.id === id);
-                if (idx !== -1) {
-                    children[idx] = { id, firstName, lastName, birthDate, gender, notes };
+            const childData = { firstName, lastName, birthDate, gender, notes };
+
+            try {
+                if (id) {
+                    await setDoc(doc(db, "children", id), childData, { merge: true });
+                } else {
+                    await addDoc(collection(db, "children"), childData);
                 }
-            } else {
-                const newChild = {
-                    id: 'c_' + Math.random().toString(36).substr(2, 9),
-                    firstName,
-                    lastName,
-                    birthDate,
-                    gender,
-                    notes
-                };
-                children.push(newChild);
+                closeChildModal();
+            } catch (error) {
+                console.error("Errore durante il salvataggio del bambino:", error);
+                alert("Si è verificato un errore durante il salvataggio su Firebase.");
             }
+        };
 
-            saveToLocalStorage();
-            closeChildModal();
-
-            if (currentChildId && id === currentChildId) {
-                renderChildDetailView();
-            } else {
-                renderChildrenGrid();
-            }
-        }
-
-        function confirmDeleteChild(childId) {
+        // FIREBASE: Elimina un Bambino e le sue registrazioni correlate
+        window.confirmDeleteChild = async function(childId) {
             if (confirm("Attenzione: eliminando il bambino verranno eliminate anche tutte le sue registrazioni storiche di pasti e sonno. Continuare?")) {
-                children = children.filter(c => c.id !== childId);
-                logs = logs.filter(l => l.childId !== childId);
-                saveToLocalStorage();
-                navigateTo('dashboard');
+                try {
+                    // Elimina il bambino
+                    await deleteDoc(doc(db, "children", childId));
+
+                    // Elimina tutti i log associati in batch
+                    const q = query(collection(db, "logs"), where("childId", "==", childId));
+                    const querySnapshot = await getDocs(q);
+                    
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach((docSnap) => {
+                        batch.delete(docSnap.ref);
+                    });
+                    await batch.commit();
+
+                    navigateTo('dashboard');
+                } catch (error) {
+                    console.error("Errore nell'eliminazione del bambino e relativi dati:", error);
+                    alert("Si è verificato un errore durante l'eliminazione su Firebase.");
+                }
             }
-        }
+        };
 
         function calculateAgeText(birthDateStr) {
             if (!birthDateStr) return '';
