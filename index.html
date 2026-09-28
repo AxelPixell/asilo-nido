@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2pdf.js per l'esportazione PDF client-side -->
+    <!-- html2pdf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
@@ -41,364 +41,316 @@
         }
     </script>
     <style>
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: #F8F9FA;
-        }
-        h1, h2, h3, h4, .font-heading {
-            font-family: 'Fredoka', sans-serif;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* STILI SPECIFICI PER PDF ED EVITARE SOVRAPPOSIZIONI */
-        .pdf-export-mode {
-            background-color: #ffffff !important;
-            padding: 15px !important;
-            width: 100% !important;
-        }
-
-        .pdf-export-mode .pdf-page-break {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-
-        .pdf-export-mode .no-pdf {
-            display: none !important;
-        }
-
-        .pdf-export-mode #logsHistoryList {
-            max-height: none !important;
-            overflow: visible !important;
-            height: auto !important;
-        }
-
-        .pdf-export-mode .chart-box-pdf {
-            height: 220px !important;
-            min-height: 220px !important;
-            position: relative !important;
-            display: block !important;
-            margin-bottom: 20px !important;
-            page-break-inside: avoid !important;
-        }
-
-        .pdf-export-mode canvas {
-            max-height: 200px !important;
-            height: 200px !important;
-            width: 100% !important;
-        }
+        body { font-family: 'Nunito', sans-serif; background-color: #F8F9FA; }
+        h1, h2, h3, h4, .font-heading { font-family: 'Fredoka', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .pdf-export-mode { background-color: #ffffff !important; padding: 15px !important; width: 100% !important; }
+        .pdf-export-mode .pdf-page-break { page-break-inside: avoid !important; break-inside: avoid !important; }
+        .pdf-export-mode .no-pdf { display: none !important; }
+        .pdf-export-mode #logsHistoryList { max-height: none !important; overflow: visible !important; height: auto !important; }
+        .pdf-export-mode .chart-box-pdf { height: 220px !important; min-height: 220px !important; position: relative !important; display: block !important; margin-bottom: 20px !important; page-break-inside: avoid !important; }
+        .pdf-export-mode canvas { max-height: 200px !important; height: 200px !important; width: 100% !important; }
     </style>
 </head>
 <body class="bg-amber-50/30 text-gray-800 min-h-screen flex flex-col">
 
-    <!-- TOP NAVBAR -->
-    <header class="bg-white border-b border-amber-100 shadow-sm sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('dashboard')">
-                    <div class="w-10 h-10 rounded-2xl bg-amber-400 text-white flex items-center justify-center font-heading text-2xl shadow-md transform -rotate-3">
-                        <i class="fa-solid fa-shapes"></i>
-                    </div>
-                    <div>
-                        <span class="font-heading text-2xl font-bold text-teal-800 tracking-wide">Piccoli Passi</span>
-                        <span class="block text-xs text-amber-600 font-semibold uppercase tracking-wider">Diario Asilo Nido</span>
-                    </div>
+    <!-- SCHERMATA LOGIN / REGISTRAZIONE -->
+    <div id="authContainer" class="fixed inset-0 z-50 bg-amber-50/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-xl border border-amber-100 max-w-md w-full space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-amber-400 text-white inline-flex items-center justify-center font-heading text-3xl shadow-md transform -rotate-3 mb-1">
+                    <i class="fa-solid fa-shapes"></i>
                 </div>
-
-                <!-- Navigation Tabs -->
-                <nav class="hidden md:flex space-x-2">
-                    <button id="nav-dashboard" onclick="navigateTo('dashboard')" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 bg-teal-50 text-teal-700">
-                        <i class="fa-solid fa-child-reaching"></i>
-                        <span>Tutti i Bambini</span>
-                    </button>
-                    <button id="nav-report" onclick="navigateTo('report')" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 text-gray-600 hover:bg-amber-50 hover:text-amber-700">
-                        <i class="fa-solid fa-clipboard-list"></i>
-                        <span>Report Giornaliero</span>
-                    </button>
-                </nav>
-
-                <!-- Educatore Active Switch -->
-                <div class="flex items-center space-x-3 bg-amber-100/60 px-3 py-1.5 rounded-full border border-amber-200/80">
-                    <i class="fa-solid fa-user-nurse text-amber-600"></i>
-                    <span class="text-xs font-semibold text-amber-900 hidden sm:inline">Educatrice:</span>
-                    <input type="text" id="globalEducatorName" placeholder="Il tuo nome..." 
-                           class="bg-transparent border-none text-xs font-bold text-amber-900 focus:outline-none w-24 sm:w-32" 
-                           onchange="updateDefaultEducator(this.value)">
-                </div>
+                <h2 id="authTitle" class="text-2xl font-bold text-gray-800">Accedi al tuo Asilo</h2>
+                <p id="authSubtitle" class="text-xs text-gray-500">Gestisci l'agenda riservata della tua struttura</p>
             </div>
-        </div>
-        
-        <!-- Mobile Navigation Bottom Bar -->
-        <div class="md:hidden flex border-t border-amber-100 bg-white">
-            <button onclick="navigateTo('dashboard')" class="flex-1 py-2 text-center text-xs font-semibold text-teal-700 hover:bg-amber-50">
-                <i class="fa-solid fa-child-reaching text-base block mb-0.5"></i> Bambini
-            </button>
-            <button onclick="navigateTo('report')" class="flex-1 py-2 text-center text-xs font-semibold text-gray-600 hover:bg-amber-50">
-                <i class="fa-solid fa-clipboard-list text-base block mb-0.5"></i> Report Oggi
-            </button>
-        </div>
-    </header>
 
-    <!-- MAIN CONTENT CONTAINER -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
-        
-        <!-- SECTION 1: DASHBOARD (ALL CHILDREN) -->
-        <section id="sec-dashboard" class="space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-amber-100 shadow-sm">
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">I Nostri Bambini</h1>
-                    <p class="text-sm text-gray-500 mt-1">Seleziona una scheda per registrare pasti, sonno e consultare lo storico.</p>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Email Asilo</label>
+                    <input type="email" id="authEmail" required placeholder="struttura@nido.it" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
                 </div>
-                <button onclick="openChildModal()" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-2xl shadow-lg shadow-teal-600/20 transition-all flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Nuovo Bambino</span>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Password</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                </div>
+
+                <div id="authError" class="text-xs font-bold text-red-500 hidden text-center"></div>
+
+                <button type="submit" id="authSubmitBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-md transition-all text-sm">
+                    Accedi
+                </button>
+            </form>
+
+            <div class="text-center border-t border-gray-100 pt-4">
+                <button type="button" onclick="toggleAuthMode()" id="toggleAuthBtn" class="text-xs font-bold text-amber-600 hover:text-amber-700">
+                    Non hai un account? Registra la tua struttura
                 </button>
             </div>
+        </div>
+    </div>
 
-            <!-- Children Grid -->
-            <div id="childrenGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamically Populated Cards -->
-            </div>
-        </section>
-
-        <!-- SECTION 2: CHILD DETAIL VIEW -->
-        <section id="sec-child-detail" class="hidden space-y-6">
-            <!-- Top Controls -->
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <button onclick="navigateTo('dashboard')" class="text-sm font-semibold text-teal-700 hover:text-teal-900 bg-white px-4 py-2 rounded-xl border border-amber-200/60 shadow-sm flex items-center space-x-2 transition-all">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span>Torna all'elenco</span>
-                </button>
-                <div class="flex items-center space-x-2">
-                    <!-- PDF DOWNLOAD BUTTON -->
-                    <button onclick="exportChildPDF()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md transition-all text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-file-pdf"></i>
-                        <span>Scarica PDF Scheda</span>
-                    </button>
-                    <button id="editChildBtn" class="text-gray-600 hover:text-teal-700 bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm text-sm" title="Modifica dati bambino">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button id="deleteChildBtn" class="text-red-500 hover:text-red-700 bg-white p-2.5 rounded-xl border border-red-200 shadow-sm text-sm" title="Elimina bambino">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- PRINTABLE AREA FOR PDF -->
-            <div id="printablePdfArea" class="space-y-6">
-                
-                <!-- Child Info Card -->
-                <div id="childHeaderCard" class="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm flex flex-col md:flex-row items-center gap-6 pdf-page-break">
-                    <!-- Content injected via JS -->
-                </div>
-
-                <!-- WEEKLY SUMMARY GRAPH SECTION -->
-                <div id="weeklyChartsCard" class="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm space-y-4 pdf-page-break">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-2">
+    <!-- APP PRINCIPALE (Inizialmente Nascosta) -->
+    <div id="appMain" class="hidden min-h-screen flex flex-col">
+        <!-- TOP NAVBAR -->
+        <header class="bg-white border-b border-amber-100 shadow-sm sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('dashboard')">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-400 text-white flex items-center justify-center font-heading text-2xl shadow-md transform -rotate-3">
+                            <i class="fa-solid fa-shapes"></i>
+                        </div>
                         <div>
-                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <i class="fa-solid fa-chart-line text-amber-500"></i> Andamento della Settimana
-                            </h2>
-                            <p id="weekRangeLabel" class="text-xs text-gray-500 mt-0.5">Lunedì - Venerdì (Settimana corrente)</p>
-                        </div>
-                        <div class="flex bg-amber-50 p-1 rounded-xl text-xs font-semibold text-amber-900 border border-amber-200 no-pdf">
-                            <span class="px-3 py-1">Oggi è <strong id="todayNameLabel">...</strong></span>
+                            <span class="font-heading text-2xl font-bold text-teal-800 tracking-wide">Piccoli Passi</span>
+                            <span id="userDisplayEmail" class="block text-xs text-amber-600 font-semibold truncate max-w-[150px] sm:max-w-none">Asilo Nido</span>
                         </div>
                     </div>
 
-                    <!-- Charts Grid Layout -->
-                    <div id="chartsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-                        <!-- Meal Chart -->
-                        <div class="bg-amber-50/40 p-4 rounded-2xl border border-amber-100 chart-box-pdf">
-                            <h3 class="text-sm font-bold text-amber-900 mb-3 flex items-center gap-2">
-                                <i class="fa-solid fa-utensils text-amber-500"></i> Quantità Pasti Consumati
-                            </h3>
-                            <div class="h-48 relative">
-                                <canvas id="mealWeeklyChart"></canvas>
-                            </div>
+                    <nav class="hidden md:flex space-x-2">
+                        <button id="nav-dashboard" onclick="navigateTo('dashboard')" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 bg-teal-50 text-teal-700">
+                            <i class="fa-solid fa-child-reaching"></i>
+                            <span>Tutti i Bambini</span>
+                        </button>
+                        <button id="nav-report" onclick="navigateTo('report')" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 text-gray-600 hover:bg-amber-50 hover:text-amber-700">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            <span>Report Giornaliero</span>
+                        </button>
+                    </nav>
+
+                    <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2 bg-amber-100/60 px-3 py-1.5 rounded-full border border-amber-200/80">
+                            <i class="fa-solid fa-user-nurse text-amber-600"></i>
+                            <input type="text" id="globalEducatorName" placeholder="Educatrice..." class="bg-transparent border-none text-xs font-bold text-amber-900 focus:outline-none w-20 sm:w-28" onchange="updateDefaultEducator(this.value)">
                         </div>
-                        <!-- Sleep Chart -->
-                        <div class="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100 chart-box-pdf">
-                            <h3 class="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                                <i class="fa-solid fa-moon text-indigo-500"></i> Ore di Sonno Giornaliere
-                            </h3>
-                            <div class="h-48 relative">
-                                <canvas id="sleepWeeklyChart"></canvas>
-                            </div>
-                        </div>
+                        <button onclick="handleLogout()" class="p-2 text-gray-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition-all" title="Esci">
+                            <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="md:hidden flex border-t border-amber-100 bg-white">
+                <button onclick="navigateTo('dashboard')" class="flex-1 py-2 text-center text-xs font-semibold text-teal-700 hover:bg-amber-50">
+                    <i class="fa-solid fa-child-reaching text-base block mb-0.5"></i> Bambini
+                </button>
+                <button onclick="navigateTo('report')" class="flex-1 py-2 text-center text-xs font-semibold text-gray-600 hover:bg-amber-50">
+                    <i class="fa-solid fa-clipboard-list text-base block mb-0.5"></i> Report Oggi
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+            
+            <!-- SECTION 1: DASHBOARD -->
+            <section id="sec-dashboard" class="space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-amber-100 shadow-sm">
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">I Nostri Bambini</h1>
+                        <p class="text-sm text-gray-500 mt-1">Seleziona una scheda per registrare pasti, sonno e consultare lo storico.</p>
+                    </div>
+                    <button onclick="openChildModal()" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-2xl shadow-lg shadow-teal-600/20 transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Nuovo Bambino</span>
+                    </button>
+                </div>
+
+                <div id="childrenGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </section>
+
+            <!-- SECTION 2: CHILD DETAIL -->
+            <section id="sec-child-detail" class="hidden space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <button onclick="navigateTo('dashboard')" class="text-sm font-semibold text-teal-700 hover:text-teal-900 bg-white px-4 py-2 rounded-xl border border-amber-200/60 shadow-sm flex items-center space-x-2 transition-all">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Torna all'elenco</span>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportChildPDF()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md transition-all text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            <span>Scarica PDF Scheda</span>
+                        </button>
+                        <button id="editChildBtn" class="text-gray-600 hover:text-teal-700 bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm text-sm" title="Modifica dati bambino">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button id="deleteChildBtn" class="text-red-500 hover:text-red-700 bg-white p-2.5 rounded-xl border border-red-200 shadow-sm text-sm" title="Elimina bambino">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- NEW REGISTRATION FORM & LOGS LIST GRID -->
-                <div id="logsGridArea" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <!-- Registration Form (Hidden in PDF) -->
-                    <div id="registrationFormContainer" class="lg:col-span-5 bg-white rounded-3xl p-6 border border-amber-100 shadow-sm self-start space-y-5 no-pdf">
-                        <h2 class="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-square-plus text-teal-600"></i> Nuova Registrazione
-                        </h2>
+                <div id="printablePdfArea" class="space-y-6">
+                    <div id="childHeaderCard" class="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm flex flex-col md:flex-row items-center gap-6 pdf-page-break"></div>
 
-                        <!-- Activity Type Selector -->
-                        <div class="grid grid-cols-2 gap-3 p-1 bg-gray-100/80 rounded-2xl">
-                            <button type="button" id="btnTypeMeal" onclick="switchLogForm('pasto')" 
-                                    class="py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 bg-white text-amber-700 shadow-sm">
-                                <i class="fa-solid fa-utensils"></i>
-                                <span>Pasto</span>
-                            </button>
-                            <button type="button" id="btnTypeSleep" onclick="switchLogForm('sonno')" 
-                                    class="py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 text-gray-500 hover:text-indigo-600">
-                                <i class="fa-solid fa-moon"></i>
-                                <span>Sonno</span>
-                            </button>
+                    <div id="weeklyChartsCard" class="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm space-y-4 pdf-page-break">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-2">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-line text-amber-500"></i> Andamento della Settimana
+                                </h2>
+                                <p id="weekRangeLabel" class="text-xs text-gray-500 mt-0.5">Lunedì - Venerdì</p>
+                            </div>
+                            <div class="flex bg-amber-50 p-1 rounded-xl text-xs font-semibold text-amber-900 border border-amber-200 no-pdf">
+                                <span class="px-3 py-1">Oggi è <strong id="todayNameLabel">...</strong></span>
+                            </div>
                         </div>
 
-                        <!-- Dynamic Form -->
-                        <form id="logForm" onsubmit="handleSaveLog(event)" class="space-y-4">
-                            <input type="hidden" id="logId" value="">
-                            <input type="hidden" id="logType" value="pasto">
+                        <div id="chartsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                            <div class="bg-amber-50/40 p-4 rounded-2xl border border-amber-100 chart-box-pdf">
+                                <h3 class="text-sm font-bold text-amber-900 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-utensils text-amber-500"></i> Quantità Pasti Consumati
+                                </h3>
+                                <div class="h-48 relative"><canvas id="mealWeeklyChart"></canvas></div>
+                            </div>
+                            <div class="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100 chart-box-pdf">
+                                <h3 class="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-moon text-indigo-500"></i> Ore di Sonno Giornaliere
+                                </h3>
+                                <div class="h-48 relative"><canvas id="sleepWeeklyChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Educatrice / Educatore *</label>
-                                <input type="text" id="logEducator" required placeholder="Nome educatore" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <div id="logsGridArea" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div id="registrationFormContainer" class="lg:col-span-5 bg-white rounded-3xl p-6 border border-amber-100 shadow-sm self-start space-y-5 no-pdf">
+                            <h2 class="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-square-plus text-teal-600"></i> Nuova Registrazione
+                            </h2>
+
+                            <div class="grid grid-cols-2 gap-3 p-1 bg-gray-100/80 rounded-2xl">
+                                <button type="button" id="btnTypeMeal" onclick="switchLogForm('pasto')" class="py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 bg-white text-amber-700 shadow-sm">
+                                    <i class="fa-solid fa-utensils"></i><span>Pasto</span>
+                                </button>
+                                <button type="button" id="btnTypeSleep" onclick="switchLogForm('sonno')" class="py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 text-gray-500 hover:text-indigo-600">
+                                    <i class="fa-solid fa-moon"></i><span>Sonno</span>
+                                </button>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Data *</label>
-                                <input type="date" id="logDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                            </div>
+                            <form id="logForm" onsubmit="handleSaveLog(event)" class="space-y-4">
+                                <input type="hidden" id="logId" value="">
+                                <input type="hidden" id="logType" value="pasto">
 
-                            <!-- PASTO FIELDS -->
-                            <div id="fieldsPasto" class="space-y-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Tipo di Pasto *</label>
-                                    <select id="mealType" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
-                                        <option value="Merenda Mattina">Merenda Mattina</option>
-                                        <option value="Pranzo" selected>Pranzo</option>
-                                        <option value="Merenda Pomeriggio">Merenda Pomeriggio</option>
-                                    </select>
-                                </div>
-                                
-                                <!-- CAMPO CIBO / ALIMENTO (OBBLIGATORIO) -->
-                                <div>
-                                    <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">Cibo / Alimento *</label>
-                                    <input type="text" id="mealFood" required placeholder="Es. Pasta al pomodoro e mela" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-amber-50/20">
+                                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Educatrice *</label>
+                                    <input type="text" id="logEducator" required placeholder="Nome educatore" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Data *</label>
+                                    <input type="date" id="logDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                </div>
+
+                                <div id="fieldsPasto" class="space-y-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Orario *</label>
-                                        <input type="time" id="mealTime" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Quantità *</label>
-                                        <select id="mealAmount" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
-                                            <option value="Poco">Poco</option>
-                                            <option value="Normale" selected>Normale</option>
-                                            <option value="Molto">Molto</option>
+                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Tipo Pasto *</label>
+                                        <select id="mealType" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                            <option value="Merenda Mattina">Merenda Mattina</option>
+                                            <option value="Pranzo" selected>Pranzo</option>
+                                            <option value="Merenda Pomeriggio">Merenda Pomeriggio</option>
                                         </select>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- SONNO FIELDS -->
-                            <div id="fieldsSonno" class="space-y-4 hidden">
-                                <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Ora Inizio *</label>
-                                        <input type="time" id="sleepStart" onchange="calculateSleepDuration()" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">Cibo / Alimento *</label>
+                                        <input type="text" id="mealFood" required placeholder="Es. Pasta al pomodoro e mela" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-amber-50/20">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Orario *</label>
+                                            <input type="time" id="mealTime" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Quantità *</label>
+                                            <select id="mealAmount" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                                <option value="Poco">Poco</option>
+                                                <option value="Normale" selected>Normale</option>
+                                                <option value="Molto">Molto</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="fieldsSonno" class="space-y-4 hidden">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Ora Inizio *</label>
+                                            <input type="time" id="sleepStart" onchange="calculateSleepDuration()" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Ora Fine *</label>
+                                            <input type="time" id="sleepEnd" onchange="calculateSleepDuration()" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 flex justify-between items-center text-xs text-indigo-900 font-semibold">
+                                        <span>Durata calcolata:</span>
+                                        <span id="sleepDurationPreview" class="font-bold text-indigo-700">0 h 0 min</span>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Ora Fine *</label>
-                                        <input type="time" id="sleepEnd" onchange="calculateSleepDuration()" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Interruzioni?</label>
+                                        <select id="sleepInterrupted" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white" onchange="toggleSleepNotes(this.value)">
+                                            <option value="No">No, sonno continuo</option>
+                                            <option value="Sì">Sì, ci sono state interruzioni</option>
+                                        </select>
+                                    </div>
+                                    <div id="sleepNotesContainer" class="hidden">
+                                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Dettagli Interruzioni</label>
+                                        <input type="text" id="sleepNotes" placeholder="Es. risveglio alle 13:30" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                     </div>
                                 </div>
-                                <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 flex justify-between items-center text-xs text-indigo-900 font-semibold">
-                                    <span>Durata calcolata:</span>
-                                    <span id="sleepDurationPreview" class="font-bold text-indigo-700">0 h 0 min</span>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Interruzioni / Risvegli?</label>
-                                    <select id="sleepInterrupted" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white" onchange="toggleSleepNotes(this.value)">
-                                        <option value="No">No, sonno continuo</option>
-                                        <option value="Sì">Sì, ci sono state interruzioni</option>
-                                    </select>
-                                </div>
-                                <div id="sleepNotesContainer" class="hidden">
-                                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Dettagli Interruzioni / Note</label>
-                                    <input type="text" id="sleepNotes" placeholder="Es. risveglio alle 13:30" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                                </div>
-                            </div>
 
-                            <!-- Buttons -->
-                            <div class="pt-2 flex gap-2">
-                                <button type="button" id="cancelEditLogBtn" onclick="resetLogForm()" class="hidden px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100">
-                                    Annulla
-                                </button>
-                                <button type="submit" id="submitLogBtn" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition-all text-sm flex items-center justify-center space-x-2">
-                                    <i class="fa-solid fa-floppy-disk"></i>
-                                    <span id="logBtnText">Salva Registrazione</span>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Log History List Container -->
-                    <div id="historyLogsContainer" class="lg:col-span-7 bg-white rounded-3xl p-6 border border-amber-100 shadow-sm flex flex-col space-y-4">
-                        <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Storico Registrazioni
-                            </h2>
-                            <span id="logCountBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">0 elementi</span>
+                                <div class="pt-2 flex gap-2">
+                                    <button type="button" id="cancelEditLogBtn" onclick="resetLogForm()" class="hidden px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100">
+                                        Annulla
+                                    </button>
+                                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition-all text-sm flex items-center justify-center space-x-2">
+                                        <i class="fa-solid fa-floppy-disk"></i>
+                                        <span id="logBtnText">Salva Registrazione</span>
+                                    </button>
+                                </div>
+                            </form>
                         </div>
 
-                        <!-- Filter Tabs (Hidden in PDF) -->
-                        <div id="filterTabsContainer" class="flex space-x-2 text-xs font-semibold no-pdf">
-                            <button onclick="filterLogs('all')" id="filter-all" class="px-3 py-1.5 rounded-xl bg-gray-800 text-white transition-all">Tutti</button>
-                            <button onclick="filterLogs('pasto')" id="filter-pasto" class="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-amber-100 transition-all">Pasti</button>
-                            <button onclick="filterLogs('sonno')" id="filter-sonno" class="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-indigo-100 transition-all">Sonno</button>
-                        </div>
+                        <div id="historyLogsContainer" class="lg:col-span-7 bg-white rounded-3xl p-6 border border-amber-100 shadow-sm flex flex-col space-y-4">
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Storico Registrazioni
+                                </h2>
+                                <span id="logCountBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">0 elementi</span>
+                            </div>
 
-                        <!-- Scrollable Log Container (Unclipped for PDF) -->
-                        <div id="logsHistoryList" class="space-y-3 overflow-y-auto max-h-[500px] pr-1 custom-scrollbar flex-grow">
-                            <!-- Dynamic Records -->
+                            <div id="filterTabsContainer" class="flex space-x-2 text-xs font-semibold no-pdf">
+                                <button onclick="filterLogs('all')" id="filter-all" class="px-3 py-1.5 rounded-xl bg-gray-800 text-white transition-all">Tutti</button>
+                                <button onclick="filterLogs('pasto')" id="filter-pasto" class="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-amber-100 transition-all">Pasti</button>
+                                <button onclick="filterLogs('sonno')" id="filter-sonno" class="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-indigo-100 transition-all">Sonno</button>
+                            </div>
+
+                            <div id="logsHistoryList" class="space-y-3 overflow-y-auto max-h-[500px] pr-1 custom-scrollbar flex-grow"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 3: DAILY OVERVIEW REPORT -->
-        <section id="sec-report" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <i class="fa-solid fa-clipboard-check text-teal-600"></i> Report Giornaliero Completo
-                    </h1>
-                    <p class="text-sm text-gray-500 mt-1">Quadro riassuntivo di tutti i bambini per la giornata selezionata.</p>
+            <!-- SECTION 3: DAILY REPORT -->
+            <section id="sec-report" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-teal-600"></i> Report Giornaliero
+                        </h1>
+                        <p class="text-sm text-gray-500 mt-1">Quadro riassuntivo per la giornata selezionata.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-xs font-bold text-gray-600">Data:</label>
+                        <input type="date" id="reportDatePicker" onchange="renderDailyReport()" class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-amber-50/50">
+                    </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <label class="text-xs font-bold text-gray-600">Data:</label>
-                    <input type="date" id="reportDatePicker" onchange="renderDailyReport()" class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-amber-50/50">
-                </div>
-            </div>
 
-            <div id="reportContainer" class="space-y-4">
-                <!-- Dynamically generated per-child report cards -->
-            </div>
-        </section>
-    </main>
+                <div id="reportContainer" class="space-y-4"></div>
+            </section>
+        </main>
+    </div>
 
     <!-- MODAL: ADD / EDIT CHILD -->
     <div id="childModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
@@ -425,21 +377,21 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Data di Nascita *</label>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Nascita *</label>
                         <input type="date" id="childBirthDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Genere/Avatar *</label>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Genere *</label>
                         <select id="childGender" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
-                            <option value="M">Maschio (Azzurro)</option>
-                            <option value="F">Femmina (Rosa)</option>
+                            <option value="M">Maschio</option>
+                            <option value="F">Femmina</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Note Allergie / Intolleranze</label>
-                    <input type="text" id="childNotes" placeholder="Es. Nessuna, oppure Intollerante al lattosio" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Note / Allergie</label>
+                    <input type="text" id="childNotes" placeholder="Es. Intolleranza al lattosio" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
                 </div>
 
                 <div class="pt-3 flex justify-end space-x-3">
@@ -454,11 +406,14 @@
         </div>
     </div>
 
-    <!-- FIREBASE MODULE & APPLICATION LOGIC -->
+    <!-- SCRIPT FIREBASE CON AUTENTICAZIONE E FILTRI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { 
-            getFirestore, collection, addDoc, setDoc, doc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, getDocs 
+            getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { 
+            getFirestore, collection, addDoc, setDoc, doc, deleteDoc, onSnapshot, query, where, writeBatch, getDocs 
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -471,72 +426,109 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        const STORAGE_KEY_EDUCATOR = 'nido_educator_v3';
-
+        let currentUser = null;
+        let isSignUpMode = false;
         let children = [];
         let logs = [];
         let currentChildId = null;
         let activeFilter = 'all';
         let currentView = 'dashboard';
         let defaultEducator = 'Maria G.';
+        let unsubscribeChildren = null;
+        let unsubscribeLogs = null;
 
-        // Instanze grafici Chart.js
         let mealChartInstance = null;
         let sleepChartInstance = null;
 
-        // Inizializzazione Listener Firebase in tempo reale
-        window.addEventListener('DOMContentLoaded', () => {
-            setupCurrentEducator();
-            setupDefaultDates();
-            
-            // Sincronizzazione Realtime Collezione "children"
-            onSnapshot(collection(db, "children"), (snapshot) => {
-                children = snapshot.docs.map(docSnap => ({
-                    id: docSnap.id,
-                    ...docSnap.data()
-                }));
-                refreshCurrentView();
-            }, (error) => {
-                console.error("Errore caricamento bambini da Firestore:", error);
-            });
-
-            // Sincronizzazione Realtime Collezione "logs"
-            onSnapshot(collection(db, "logs"), (snapshot) => {
-                logs = snapshot.docs.map(docSnap => ({
-                    id: docSnap.id,
-                    ...docSnap.data()
-                }));
-                refreshCurrentView();
-            }, (error) => {
-                console.error("Errore caricamento registrazioni da Firestore:", error);
-            });
+        // AUTH LISTENERS
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('authContainer').classList.add('hidden');
+                document.getElementById('appMain').classList.remove('hidden');
+                document.getElementById('userDisplayEmail').innerText = user.email;
+                setupDefaultDates();
+                attachRealtimeListeners();
+            } else {
+                currentUser = null;
+                if (unsubscribeChildren) unsubscribeChildren();
+                if (unsubscribeLogs) unsubscribeLogs();
+                document.getElementById('authContainer').classList.remove('hidden');
+                document.getElementById('appMain').classList.add('hidden');
+            }
         });
 
-        function refreshCurrentView() {
-            if (currentView === 'dashboard') {
-                renderChildrenGrid();
-            } else if (currentView === 'detail' && currentChildId) {
-                renderChildDetailView();
-            } else if (currentView === 'report') {
-                renderDailyReport();
+        window.toggleAuthMode = function() {
+            isSignUpMode = !isSignUpMode;
+            const title = document.getElementById('authTitle');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const toggleBtn = document.getElementById('toggleAuthBtn');
+
+            if (isSignUpMode) {
+                title.innerText = "Registra il tuo Asilo";
+                submitBtn.innerText = "Crea Account";
+                toggleBtn.innerText = "Hai già un account? Accedi";
+            } else {
+                title.innerText = "Accedi al tuo Asilo";
+                submitBtn.innerText = "Accedi";
+                toggleBtn.innerText = "Non hai un account? Registra la tua struttura";
             }
+        };
+
+        window.handleAuth = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const errDiv = document.getElementById('authError');
+            errDiv.classList.add('hidden');
+
+            try {
+                if (isSignUpMode) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                errDiv.innerText = "Errore: " + error.message;
+                errDiv.classList.remove('hidden');
+            }
+        };
+
+        window.handleLogout = function() {
+            signOut(auth);
+        };
+
+        // LISTENERS PER I DATI ISOLATI
+        function attachRealtimeListeners() {
+            if (!currentUser) return;
+
+            // Carica SOLO i bambini dell'asilo loggato (ownerId == currentUser.uid)
+            const qChildren = query(collection(db, "children"), where("ownerId", "==", currentUser.uid));
+            unsubscribeChildren = onSnapshot(qChildren, (snapshot) => {
+                children = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                refreshCurrentView();
+            });
+
+            // Carica SOLO le registrazioni dell'asilo loggato
+            const qLogs = query(collection(db, "logs"), where("ownerId", "==", currentUser.uid));
+            unsubscribeLogs = onSnapshot(qLogs, (snapshot) => {
+                logs = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                refreshCurrentView();
+            });
         }
 
-        function setupCurrentEducator() {
-            const savedEducator = localStorage.getItem(STORAGE_KEY_EDUCATOR);
-            if (savedEducator) {
-                defaultEducator = savedEducator;
-            }
-            document.getElementById('globalEducatorName').value = defaultEducator;
-            document.getElementById('logEducator').value = defaultEducator;
+        function refreshCurrentView() {
+            if (currentView === 'dashboard') renderChildrenGrid();
+            else if (currentView === 'detail' && currentChildId) renderChildDetailView();
+            else if (currentView === 'report') renderDailyReport();
         }
 
         window.updateDefaultEducator = function(name) {
             if (!name.trim()) return;
             defaultEducator = name.trim();
-            localStorage.setItem(STORAGE_KEY_EDUCATOR, defaultEducator);
             document.getElementById('logEducator').value = defaultEducator;
         };
 
@@ -546,9 +538,7 @@
             document.getElementById('reportDatePicker').value = todayStr;
             
             const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('mealTime').value = `${hours}:${minutes}`;
+            document.getElementById('mealTime').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             document.getElementById('sleepStart').value = "13:00";
             document.getElementById('sleepEnd').value = "15:00";
             calculateSleepDuration();
@@ -556,10 +546,7 @@
 
         function getTodayYYYYMMDD() {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         window.navigateTo = function(view, childId = null) {
@@ -584,7 +571,6 @@
                 document.getElementById('nav-report').className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center space-x-2 bg-teal-50 text-teal-700";
                 renderDailyReport();
             }
-
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
@@ -596,8 +582,8 @@
                 grid.innerHTML = `
                     <div class="col-span-full text-center py-12 bg-white rounded-3xl border border-dashed border-amber-200 p-8">
                         <i class="fa-solid fa-child text-5xl text-amber-300 mb-3 block"></i>
-                        <h3 class="text-lg font-bold text-gray-700">Nessun bambino inserito</h3>
-                        <p class="text-sm text-gray-500 mb-4">Inizia aggiungendo la prima scheda del nido.</p>
+                        <h3 class="text-lg font-bold text-gray-700">Nessun bambino presente</h3>
+                        <p class="text-sm text-gray-500 mb-4">Inizia inserendo i bambini frequentanti la tua struttura.</p>
                         <button onclick="openChildModal()" class="bg-teal-600 text-white font-bold px-4 py-2 rounded-xl text-sm">
                             <i class="fa-solid fa-plus mr-1"></i> Aggiungi Bambino
                         </button>
@@ -629,21 +615,18 @@
                                 </div>
                             </div>
                         </div>
-
                         ${child.notes ? `
                             <div class="mb-3 px-3 py-1.5 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900 line-clamp-1">
                                 <i class="fa-solid fa-circle-info text-amber-500 mr-1"></i> ${child.notes}
                             </div>
                         ` : ''}
-
                         <div class="text-xs text-gray-500 bg-gray-50 p-3 rounded-2xl border border-gray-100 mb-4">
                             <div class="font-bold text-gray-600 mb-1 flex items-center gap-1">
                                 <i class="fa-solid fa-clock text-amber-500"></i> Ultimo aggiornamento:
                             </div>
-                            <div>${lastLog ? formatLogSummaryText(lastLog) : 'Nessuna registrazione recente'}</div>
+                            <div>${lastLog ? formatLogSummaryText(lastLog) : 'Nessuna registrazione'}</div>
                         </div>
                     </div>
-
                     <div class="flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
                         <span class="text-teal-700 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
                             Apri scheda <i class="fa-solid fa-chevron-right text-xs"></i>
@@ -655,7 +638,6 @@
                         </div>
                     </div>
                 `;
-
                 grid.appendChild(card);
             });
         }
@@ -669,7 +651,6 @@
 
             const avatarBg = child.gender === 'F' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600';
             const avatarIcon = child.gender === 'F' ? 'fa-child-dress' : 'fa-child';
-            const ageText = calculateAgeText(child.birthDate);
 
             document.getElementById('childHeaderCard').innerHTML = `
                 <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl ${avatarBg} flex items-center justify-center text-3xl font-bold shadow-inner">
@@ -678,14 +659,10 @@
                 <div class="flex-grow text-center md:text-left">
                     <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">${child.firstName} ${child.lastName}</h1>
                     <div class="flex flex-wrap justify-center md:justify-start items-center gap-3 mt-1 text-xs sm:text-sm text-gray-600">
-                        <span class="bg-gray-100 px-3 py-1 rounded-full font-semibold"><i class="fa-solid fa-cake-candles text-amber-500 mr-1"></i> Età: ${ageText}</span>
+                        <span class="bg-gray-100 px-3 py-1 rounded-full font-semibold"><i class="fa-solid fa-cake-candles text-amber-500 mr-1"></i> Età: ${calculateAgeText(child.birthDate)}</span>
                         <span class="bg-gray-100 px-3 py-1 rounded-full"><i class="fa-solid fa-calendar-day text-amber-500 mr-1"></i> Nascita: ${formatDateItalian(child.birthDate)}</span>
                     </div>
-                    ${child.notes ? `
-                        <p class="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200/60 px-3 py-1.5 rounded-xl inline-block">
-                            <strong>Note educatrici:</strong> ${child.notes}
-                        </p>
-                    ` : ''}
+                    ${child.notes ? `<p class="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200/60 px-3 py-1.5 rounded-xl inline-block"><strong>Note:</strong> ${child.notes}</p>` : ''}
                 </div>
             `;
 
@@ -716,24 +693,15 @@
             if (mealChartInstance) mealChartInstance.resize();
             if (sleepChartInstance) sleepChartInstance.resize();
 
-            const filename = `Scheda_${child.firstName}_${child.lastName}_${getTodayYYYYMMDD()}.pdf`;
             const opt = {
-                margin:       [0.3, 0.3, 0.3, 0.3],
-                filename:     filename,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                margin: [0.3, 0.3, 0.3, 0.3],
+                filename: `Scheda_${child.firstName}_${child.lastName}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
             html2pdf().set(opt).from(printableArea).save().then(() => {
-                restoreNormalLayout();
-            }).catch(err => {
-                console.error("Errore durante la generazione PDF:", err);
-                restoreNormalLayout();
-            });
-
-            function restoreNormalLayout() {
                 printableArea.classList.remove('pdf-export-mode');
                 historyLogsContainer.classList.remove('w-full');
                 historyLogsContainer.classList.add('lg:col-span-7');
@@ -742,16 +710,14 @@
 
                 if (registrationForm) registrationForm.style.display = '';
                 if (filterTabs) filterTabs.style.display = 'flex';
-
                 if (mealChartInstance) mealChartInstance.resize();
                 if (sleepChartInstance) sleepChartInstance.resize();
-            }
+            });
         };
 
         function renderWeeklyCharts(childId) {
             const today = new Date();
             const daysNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì'];
-            
             const ItalianDays = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
             document.getElementById('todayNameLabel').innerText = ItalianDays[today.getDay()];
 
@@ -774,7 +740,6 @@
             const mealData = weekDates.map(dateStr => {
                 const dayMealLogs = logs.filter(l => l.childId === childId && l.type === 'pasto' && l.date === dateStr);
                 if (dayMealLogs.length === 0) return 0;
-                
                 const sum = dayMealLogs.reduce((acc, log) => acc + (mealScoresMap[log.mealAmount] || 2), 0);
                 return (sum / dayMealLogs.length).toFixed(1);
             });
@@ -782,20 +747,17 @@
             const sleepData = weekDates.map(dateStr => {
                 const daySleepLogs = logs.filter(l => l.childId === childId && l.type === 'sonno' && l.date === dateStr);
                 if (daySleepLogs.length === 0) return 0;
-
                 const totalMinutes = daySleepLogs.reduce((acc, log) => acc + (log.durationMinutes || 0), 0);
                 return (totalMinutes / 60).toFixed(1);
             });
 
             const ctxMeal = document.getElementById('mealWeeklyChart').getContext('2d');
             if (mealChartInstance) mealChartInstance.destroy();
-
             mealChartInstance = new Chart(ctxMeal, {
                 type: 'bar',
                 data: {
                     labels: daysNames,
                     datasets: [{
-                        label: 'Consumo (1:Poco, 2:Normale, 3:Molto)',
                         data: mealData,
                         backgroundColor: 'rgba(245, 158, 11, 0.65)',
                         borderColor: 'rgba(245, 158, 11, 1)',
@@ -806,55 +768,30 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            min: 0,
-                            max: 3,
-                            ticks: {
-                                stepSize: 1,
-                                callback: function(value) {
-                                    if (value === 0) return 'Nessuno';
-                                    if (value === 1) return 'Poco';
-                                    if (value === 2) return 'Normale';
-                                    if (value === 3) return 'Molto';
-                                    return '';
-                                }
-                            }
-                        }
-                    },
+                    scales: { y: { min: 0, max: 3, ticks: { stepSize: 1 } } },
                     plugins: { legend: { display: false } }
                 }
             });
 
             const ctxSleep = document.getElementById('sleepWeeklyChart').getContext('2d');
             if (sleepChartInstance) sleepChartInstance.destroy();
-
             sleepChartInstance = new Chart(ctxSleep, {
                 type: 'line',
                 data: {
                     labels: daysNames,
                     datasets: [{
-                        label: 'Ore Totali di Sonno',
                         data: sleepData,
                         backgroundColor: 'rgba(99, 102, 241, 0.15)',
                         borderColor: 'rgba(99, 102, 241, 1)',
                         borderWidth: 3,
                         fill: true,
-                        tension: 0.3,
-                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                        pointRadius: 5
+                        tension: 0.3
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            min: 0,
-                            max: 4,
-                            ticks: { callback: function(value) { return value + ' h'; } }
-                        }
-                    },
+                    scales: { y: { min: 0, max: 4 } },
                     plugins: { legend: { display: false } }
                 }
             });
@@ -883,7 +820,6 @@
         window.calculateSleepDuration = function() {
             const startStr = document.getElementById('sleepStart').value;
             const endStr = document.getElementById('sleepEnd').value;
-
             if (!startStr || !endStr) return 0;
 
             const [startH, startM] = startStr.split(':').map(Number);
@@ -891,57 +827,36 @@
 
             let startTotalMins = startH * 60 + startM;
             let endTotalMins = endH * 60 + endM;
-
-            if (endTotalMins < startTotalMins) {
-                endTotalMins += 24 * 60;
-            }
+            if (endTotalMins < startTotalMins) endTotalMins += 24 * 60;
 
             const diffMins = endTotalMins - startTotalMins;
-            const hours = Math.floor(diffMins / 60);
-            const mins = diffMins % 60;
-
-            document.getElementById('sleepDurationPreview').innerText = `${hours} h ${mins} min`;
+            document.getElementById('sleepDurationPreview').innerText = `${Math.floor(diffMins / 60)} h ${diffMins % 60} min`;
             return diffMins;
         };
 
         window.toggleSleepNotes = function(val) {
-            const container = document.getElementById('sleepNotesContainer');
-            if (val === 'Sì') {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-            }
+            document.getElementById('sleepNotesContainer').classList.toggle('hidden', val !== 'Sì');
         };
 
-        // FIREBASE: Salva o Aggiorna una registrazione (Pasto/Sonno)
+        // SALVATAGGIO LOG CON OWNER_ID
         window.handleSaveLog = async function(e) {
             e.preventDefault();
+            if (!currentUser) return;
 
             const logId = document.getElementById('logId').value;
             const logType = document.getElementById('logType').value;
-            const educator = document.getElementById('logEducator').value.trim();
-            const date = document.getElementById('logDate').value;
-
-            if (!educator || !date) {
-                alert('Compila tutti i campi obbligatori.');
-                return;
-            }
 
             let logData = {
+                ownerId: currentUser.uid, // Assegna l'ID dell'asilo loggato
                 childId: currentChildId,
                 type: logType,
-                educator: educator,
-                date: date
+                educator: document.getElementById('logEducator').value.trim(),
+                date: document.getElementById('logDate').value
             };
 
             if (logType === 'pasto') {
-                const mealFood = document.getElementById('mealFood').value.trim();
-                if (!mealFood) {
-                    alert('Specifica il cibo mangiato dal bambino.');
-                    return;
-                }
                 logData.mealType = document.getElementById('mealType').value;
-                logData.mealFood = mealFood;
+                logData.mealFood = document.getElementById('mealFood').value.trim();
                 logData.mealTime = document.getElementById('mealTime').value;
                 logData.mealAmount = document.getElementById('mealAmount').value;
             } else {
@@ -960,8 +875,7 @@
                 }
                 resetLogForm();
             } catch (error) {
-                console.error("Errore durante il salvataggio della registrazione:", error);
-                alert("Si è verificato un errore durante il salvataggio su Firebase.");
+                alert("Errore salvataggio: " + error.message);
             }
         };
 
@@ -993,15 +907,9 @@
             document.getElementById('cancelEditLogBtn').classList.remove('hidden');
         };
 
-        // FIREBASE: Elimina una registrazione
         window.deleteLog = async function(logId) {
-            if (confirm("Vuoi davvero eliminare questa registrazione?")) {
-                try {
-                    await deleteDoc(doc(db, "logs", logId));
-                } catch (error) {
-                    console.error("Errore durante l'eliminazione:", error);
-                    alert("Si è verificato un errore nell'eliminazione della registrazione.");
-                }
+            if (confirm("Eliminare questa registrazione?")) {
+                await deleteDoc(doc(db, "logs", logId));
             }
         };
 
@@ -1011,7 +919,6 @@
             document.getElementById('logEducator').value = defaultEducator;
             document.getElementById('logBtnText').innerText = "Salva Registrazione";
             document.getElementById('cancelEditLogBtn').classList.add('hidden');
-            
             switchLogForm('pasto');
             document.getElementById('mealFood').value = '';
             document.getElementById('sleepNotes').value = '';
@@ -1022,12 +929,9 @@
         window.filterLogs = function(filter) {
             activeFilter = filter;
             ['all', 'pasto', 'sonno'].forEach(f => {
-                const btn = document.getElementById(`filter-${f}`);
-                if (f === filter) {
-                    btn.className = "px-3 py-1.5 rounded-xl bg-gray-800 text-white transition-all";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all";
-                }
+                document.getElementById(`filter-${f}`).className = f === filter ? 
+                    "px-3 py-1.5 rounded-xl bg-gray-800 text-white transition-all" : 
+                    "px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all";
             });
             renderLogsList(currentChildId);
         };
@@ -1037,92 +941,56 @@
             list.innerHTML = '';
 
             let filtered = logs.filter(l => l.childId === childId);
-            if (activeFilter !== 'all') {
-                filtered = filtered.filter(l => l.type === activeFilter);
-            }
+            if (activeFilter !== 'all') filtered = filtered.filter(l => l.type === activeFilter);
 
             filtered.sort((a, b) => new Date(b.date + 'T' + (b.mealTime || b.sleepStart || '00:00')) - new Date(a.date + 'T' + (a.mealTime || a.sleepStart || '00:00')));
 
             document.getElementById('logCountBadge').innerText = `${filtered.length} elementi`;
 
             if (filtered.length === 0) {
-                list.innerHTML = `
-                    <div class="text-center py-8 text-gray-400 text-sm">
-                        <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
-                        Nessuna registrazione trovata.
-                    </div>
-                `;
+                list.innerHTML = `<div class="text-center py-8 text-gray-400 text-sm">Nessuna registrazione trovata.</div>`;
                 return;
             }
 
             filtered.forEach(log => {
                 const item = document.createElement('div');
                 const isMeal = log.type === 'pasto';
-                const cardBorder = isMeal ? 'border-amber-100 bg-amber-50/20' : 'border-indigo-100 bg-indigo-50/20';
-                const badgeColor = isMeal ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800';
-                const icon = isMeal ? 'fa-utensils' : 'fa-moon';
+                item.className = `p-4 rounded-2xl border ${isMeal ? 'border-amber-100 bg-amber-50/20' : 'border-indigo-100 bg-indigo-50/20'} flex flex-col sm:flex-row justify-between sm:items-center gap-3 pdf-page-break`;
 
-                item.className = `p-4 rounded-2xl border ${cardBorder} flex flex-col sm:flex-row justify-between sm:items-center gap-3 transition-all hover:bg-white pdf-page-break`;
-
-                let detailsHtml = '';
-                if (isMeal) {
-                    const amountBadge = log.mealAmount === 'Poco' ? 'bg-red-100 text-red-700' :
-                                      log.mealAmount === 'Normale' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700';
-                    detailsHtml = `
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-bold text-gray-800">${log.mealType}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full font-bold ${amountBadge}">Quantità: ${log.mealAmount}</span>
-                            </div>
-                            <div class="text-xs font-semibold text-amber-950 mt-1 flex items-center gap-1">
-                                <i class="fa-solid fa-bowl-food text-amber-600"></i> Alimento: <span class="font-bold">${log.mealFood || 'Non specificato'}</span>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-0.5">
-                                <i class="fa-solid fa-clock mr-1"></i> Orario: ${log.mealTime || '--:--'}
-                            </div>
+                let detailsHtml = isMeal ? `
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-800">${log.mealType}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">${log.mealAmount}</span>
                         </div>
-                    `;
-                } else {
-                    const hours = Math.floor((log.durationMinutes || 0) / 60);
-                    const mins = (log.durationMinutes || 0) % 60;
-                    detailsHtml = `
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-gray-800">Sonno / Riposo</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">
-                                    Durata: ${hours}h ${mins}m
-                                </span>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-1 space-x-2">
-                                <span><i class="fa-solid fa-clock mr-1"></i> ${log.sleepStart} - ${log.sleepEnd}</span>
-                                ${log.interrupted === 'Sì' ? `<span class="text-amber-700 font-semibold"><i class="fa-solid fa-circle-exclamation mr-1"></i> Interrotto (${log.notes || 'Sì'})</span>` : '<span class="text-emerald-700 font-semibold"><i class="fa-solid fa-check mr-1"></i> Continuo</span>'}
-                            </div>
+                        <div class="text-xs font-semibold text-amber-950 mt-1">🥣 Alimento: ${log.mealFood || 'Non specificato'}</div>
+                        <div class="text-xs text-gray-500 mt-0.5"><i class="fa-solid fa-clock mr-1"></i> Orario: ${log.mealTime || '--:--'}</div>
+                    </div>
+                ` : `
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-800">Riposo</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">${Math.floor((log.durationMinutes||0)/60)}h ${(log.durationMinutes||0)%60}m</span>
                         </div>
-                    `;
-                }
+                        <div class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-clock mr-1"></i> ${log.sleepStart} - ${log.sleepEnd}</div>
+                    </div>
+                `;
 
                 item.innerHTML = `
                     <div class="flex items-start space-x-3">
-                        <div class="w-9 h-9 rounded-xl ${badgeColor} flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
-                            <i class="fa-solid ${icon}"></i>
+                        <div class="w-9 h-9 rounded-xl ${isMeal ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'} flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+                            <i class="fa-solid ${isMeal ? 'fa-utensils' : 'fa-moon'}"></i>
                         </div>
                         <div>
-                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                ${formatDateItalian(log.date)} • Ed: <span class="text-gray-700">${log.educator}</span>
-                            </div>
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">${formatDateItalian(log.date)} • Ed: ${log.educator}</div>
                             ${detailsHtml}
                         </div>
                     </div>
                     <div class="flex items-center justify-end space-x-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 no-pdf">
-                        <button onclick="editLog('${log.id}')" class="p-2 text-gray-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 text-xs font-semibold" title="Modifica">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button onclick="deleteLog('${log.id}')" class="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 text-xs font-semibold" title="Elimina">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        <button onclick="editLog('${log.id}')" class="p-2 text-gray-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 text-xs font-semibold"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteLog('${log.id}')" class="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 text-xs font-semibold"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `;
-
                 list.appendChild(item);
             });
         }
@@ -1133,7 +1001,7 @@
             container.innerHTML = '';
 
             if (children.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-gray-500">Nessun bambino registrato nel sistema.</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-gray-500">Nessun bambino presente.</div>`;
                 return;
             }
 
@@ -1144,34 +1012,6 @@
 
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-3xl p-5 border border-amber-100 shadow-sm space-y-4";
-
-                let mealsSummaryHtml = meals.length === 0 ? '<span class="text-xs text-gray-400 italic">Nessun pasto registrato</span>' : 
-                    meals.map(m => `
-                        <div class="bg-amber-50 px-3 py-2 rounded-xl border border-amber-100 text-xs space-y-0.5">
-                            <div class="flex justify-between items-center font-bold text-gray-800">
-                                <span>${m.mealType} (${m.mealAmount})</span>
-                                <span class="text-amber-800 text-[10px] font-semibold">Ed: ${m.educator}</span>
-                            </div>
-                            <div class="text-amber-950 font-medium">
-                                🥣 ${m.mealFood || 'Non specificato'}
-                            </div>
-                            <div class="text-[10px] text-gray-500">
-                                Orario: ${m.mealTime}
-                            </div>
-                        </div>
-                    `).join('');
-
-                let sleepSummaryHtml = sleeps.length === 0 ? '<span class="text-xs text-gray-400 italic">Nessun sonno registrato</span>' :
-                    sleeps.map(s => {
-                        const h = Math.floor((s.durationMinutes || 0) / 60);
-                        const m = (s.durationMinutes || 0) % 60;
-                        return `
-                            <div class="bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100 text-xs flex justify-between items-center">
-                                <span><strong>Orario:</strong> ${s.sleepStart} - ${s.sleepEnd} (${h}h ${m}m) ${s.interrupted === 'Sì' ? '⚠️ Interrotto' : ''}</span>
-                                <span class="text-indigo-800 text-[10px] font-semibold">Ed: ${s.educator}</span>
-                            </div>
-                        `;
-                    }).join('');
 
                 card.innerHTML = `
                     <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -1185,42 +1025,30 @@
                             </div>
                         </div>
                         <button onclick="navigateTo('detail', '${child.id}')" class="text-xs font-bold text-teal-700 hover:bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200">
-                            Vai alla scheda <i class="fa-solid fa-arrow-right ml-1"></i>
+                            Scheda <i class="fa-solid fa-arrow-right ml-1"></i>
                         </button>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
-                                <i class="fa-solid fa-utensils text-amber-500"></i> Pasti del Giorno
-                            </h4>
-                            <div class="space-y-1.5">
-                                ${mealsSummaryHtml}
-                            </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <strong class="text-amber-900 block mb-1">Pasti:</strong>
+                            ${meals.length === 0 ? '<span class="text-gray-400">Nessuno</span>' : meals.map(m => `<div class="bg-amber-50 p-2 rounded-xl mb-1">${m.mealType}: ${m.mealFood} (${m.mealAmount})</div>`).join('')}
                         </div>
-                        <div class="space-y-2">
-                            <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1">
-                                <i class="fa-solid fa-moon text-indigo-500"></i> Riposo del Giorno
-                            </h4>
-                            <div class="space-y-1.5">
-                                ${sleepSummaryHtml}
-                            </div>
+                        <div>
+                            <strong class="text-indigo-900 block mb-1">Riposo:</strong>
+                            ${sleeps.length === 0 ? '<span class="text-gray-400">Nessuno</span>' : sleeps.map(s => `<div class="bg-indigo-50 p-2 rounded-xl mb-1">${s.sleepStart} -${s.sleepEnd}</div>`).join('')}
                         </div>
                     </div>
                 `;
-
                 container.appendChild(card);
             });
         };
 
         window.openChildModal = function(childId = null) {
             const modal = document.getElementById('childModal');
-            const title = document.getElementById('childModalTitle');
-            
             if (childId) {
                 const child = children.find(c => c.id === childId);
                 if (!child) return;
-                title.innerText = "Modifica Bambino";
+                document.getElementById('childModalTitle').innerText = "Modifica Bambino";
                 document.getElementById('childFormId').value = child.id;
                 document.getElementById('childFirstName').value = child.firstName;
                 document.getElementById('childLastName').value = child.lastName;
@@ -1228,11 +1056,10 @@
                 document.getElementById('childGender').value = child.gender || 'M';
                 document.getElementById('childNotes').value = child.notes || '';
             } else {
-                title.innerText = "Aggiungi Bambino";
+                document.getElementById('childModalTitle').innerText = "Aggiungi Bambino";
                 document.getElementById('childFormId').value = '';
                 document.getElementById('childForm').reset();
             }
-
             modal.classList.remove('hidden');
         };
 
@@ -1240,23 +1067,20 @@
             document.getElementById('childModal').classList.add('hidden');
         };
 
-        // FIREBASE: Salva o Aggiorna un Bambino
+        // SALVATAGGIO BAMBINO CON OWNER_ID
         window.handleSaveChild = async function(e) {
             e.preventDefault();
+            if (!currentUser) return;
 
             const id = document.getElementById('childFormId').value;
-            const firstName = document.getElementById('childFirstName').value.trim();
-            const lastName = document.getElementById('childLastName').value.trim();
-            const birthDate = document.getElementById('childBirthDate').value;
-            const gender = document.getElementById('childGender').value;
-            const notes = document.getElementById('childNotes').value.trim();
-
-            if (!firstName || !lastName || !birthDate) {
-                alert("Compila tutti i campi obbligatori.");
-                return;
-            }
-
-            const childData = { firstName, lastName, birthDate, gender, notes };
+            const childData = {
+                ownerId: currentUser.uid, // Associa il bambino all'asilo loggato
+                firstName: document.getElementById('childFirstName').value.trim(),
+                lastName: document.getElementById('childLastName').value.trim(),
+                birthDate: document.getElementById('childBirthDate').value,
+                gender: document.getElementById('childGender').value,
+                notes: document.getElementById('childNotes').value.trim()
+            };
 
             try {
                 if (id) {
@@ -1266,33 +1090,19 @@
                 }
                 closeChildModal();
             } catch (error) {
-                console.error("Errore durante il salvataggio del bambino:", error);
-                alert("Si è verificato un errore durante il salvataggio su Firebase.");
+                alert("Errore salvataggio: " + error.message);
             }
         };
 
-        // FIREBASE: Elimina un Bambino e le sue registrazioni correlate
         window.confirmDeleteChild = async function(childId) {
-            if (confirm("Attenzione: eliminando il bambino verranno eliminate anche tutte le sue registrazioni storiche di pasti e sonno. Continuare?")) {
-                try {
-                    // Elimina il bambino
-                    await deleteDoc(doc(db, "children", childId));
-
-                    // Elimina tutti i log associati in batch
-                    const q = query(collection(db, "logs"), where("childId", "==", childId));
-                    const querySnapshot = await getDocs(q);
-                    
-                    const batch = writeBatch(db);
-                    querySnapshot.forEach((docSnap) => {
-                        batch.delete(docSnap.ref);
-                    });
-                    await batch.commit();
-
-                    navigateTo('dashboard');
-                } catch (error) {
-                    console.error("Errore nell'eliminazione del bambino e relativi dati:", error);
-                    alert("Si è verificato un errore durante l'eliminazione su Firebase.");
-                }
+            if (confirm("Eliminare il bambino e tutti i suoi dati storici?")) {
+                await deleteDoc(doc(db, "children", childId));
+                const q = query(collection(db, "logs"), where("childId", "==", childId));
+                const snapshot = await getDocs(q);
+                const batch = writeBatch(db);
+                snapshot.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                navigateTo('dashboard');
             }
         };
 
@@ -1300,29 +1110,16 @@
             if (!birthDateStr) return '';
             const birth = new Date(birthDateStr);
             const now = new Date();
-
             let years = now.getFullYear() - birth.getFullYear();
             let months = now.getMonth() - birth.getMonth();
-
-            if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
-                years--;
-                months += 12;
-            }
-
-            if (years === 0) {
-                return `${months} mesi`;
-            } else if (years === 1) {
-                return `1 anno e ${months} mesi`;
-            } else {
-                return `${years} anni e ${months} mesi`;
-            }
+            if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) { years--; months += 12; }
+            return years === 0 ? `${months} mesi` : `${years} anni e ${months} mesi`;
         }
 
         function formatDateItalian(dateStr) {
             if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            if (parts.length !== 3) return dateStr;
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            const p = dateStr.split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dateStr;
         }
 
         function getLastLogForChild(childId) {
@@ -1334,13 +1131,9 @@
 
         function formatLogSummaryText(log) {
             const dateFmt = formatDateItalian(log.date);
-            if (log.type === 'pasto') {
-                return `Pasto (${log.mealType}): ${log.mealFood ? log.mealFood + ' - ' : ''}${log.mealAmount} (${dateFmt})`;
-            } else {
-                const h = Math.floor((log.durationMinutes || 0) / 60);
-                const m = (log.durationMinutes || 0) % 60;
-                return `Sonno: ${h}h ${m}m (${dateFmt})`;
-            }
+            return log.type === 'pasto' ? 
+                `Pasto: ${log.mealFood ? log.mealFood + ' - ' : ''}${log.mealAmount} (${dateFmt})` : 
+                `Sonno: ${Math.floor((log.durationMinutes||0)/60)}h ${(log.durationMinutes||0)%60}m (${dateFmt})`;
         }
     </script>
 </body>
